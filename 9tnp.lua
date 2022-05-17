@@ -5,6 +5,8 @@
 -- instrument
 --
 --
+--    ▼ instructions below ▼
+--
 -- e1 select loop
 -- k2 rec/ovr/play
 -- k3 stop
@@ -21,7 +23,7 @@
 --
 PATH = _path.audio.."9tnp/"
 SESSIONID = string.format("%06.0f",1000000*math.random())
-MAX_LOOP_LENGTH = 70
+MAX_LOOP_LENGTH = 70  -- max loop length 70 sec
 CLOCK_INTERVAL = 0.01
 shifted = false
 loop = {}
@@ -117,9 +119,9 @@ end
 
 function init_parameters()
   print("init_parameters")
-  params:add_separator("loops")
+  params:add_separator("9TNP - LOOPS")
   for i=1,6 do
-    params:add_group("loop "..i,5)
+    params:add_group("loop "..i,6)
     params:add {
       type="number",
       id=i.."master",
@@ -157,6 +159,17 @@ function init_parameters()
       action=function(value)
         print(i.."loop group: "..value)
       end
+    }
+    params:add {
+      type="number",
+      id=i.."multiple",
+      name="loop multiple",
+      min=1,
+      max=6,
+      default=1,
+      action=function(value)
+        print(i.."multiple: "..value)
+      end
     }    
     params:add {type="control",id=i.."level",name="level",controlspec=controlspec.new(0,1.0,'db',0.01,1.0,''),
       action=function(value)
@@ -181,7 +194,7 @@ function init_parameters()
   end
   params:bang()
 
-  params:add_separator("buttons")
+  params:add_separator("9TNP - BUTTONS")
   params:add {type="binary",id="rec",name="record/ovr/play",behavior="toggle",
     action=function()
       print("rec button pressed")
@@ -235,7 +248,7 @@ function init_parameters()
     end
   }
   
-  params:add_separator("files")
+  params:add_separator("9TNP - FILES")
   params:add {type="binary",id="save",name="save loops to disk",behavior="toggle",
   action=function()
     print("loops saved to disk")
@@ -472,6 +485,7 @@ function all_loops_stopped()
   return true
 end
 
+--how to handle multiple?
 function sync_to_master(selected)
   if not is_master_loop(selected) and loop[params:get(selected.."master")].play == 2 then
     softcut.position(selected,loop[selected].loop_start+loop[params:get(selected.."master")].position-loop[params:get(selected.."master")].loop_start)
@@ -482,8 +496,8 @@ function sync_loop_ends_to_master(selected)
   master_length = loop[selected].position - loop[selected].loop_start
   for i=1,6 do
     if params:get(i.."master") == params:get(selected.."master") then
-      loop[i].length = master_length
-      softcut.loop_end(i,loop[i].loop_start+master_length)
+      loop[i].length = master_length * params:get(i.."multiple")
+      softcut.loop_end(i,loop[i].loop_start+master_length*params:get(i.."multiple"))
     end
   end
 end
@@ -558,7 +572,11 @@ function redraw()
     end
     --loop number & state
     screen.move(loop[i].ui_x,loop[i].ui_y-4)
-    screen.text_center(i)
+    if loop[i].content then
+      screen.text_center(i.."c")
+    else
+      screen.text_center(i)
+    end
     screen.move(loop[i].ui_x,loop[i].ui_y+4)
     if loop[i].rec == 2 then
       screen.text_center("rec")
@@ -570,13 +588,15 @@ function redraw()
       screen.text_center("stop")
     end
     --loop master / content / group
-    screen.move(loop[i].ui_x+13,loop[i].ui_y-6)
+    screen.move(loop[i].ui_x+14,loop[i].ui_y-6)
     screen.text("m"..params:get(i.."master"))
-    if loop[i].content == true then
-      screen.move(loop[i].ui_x+15,loop[i].ui_y+2)
-      screen.text("c")
-    end
-    screen.move(loop[i].ui_x+13,loop[i].ui_y+10)
+    screen.move(loop[i].ui_x+14,loop[i].ui_y+2)
+    screen.text("x"..params:get(i.."multiple"))
+--    if loop[i].content == true then
+--      screen.move(loop[i].ui_x+15,loop[i].ui_y+2)
+--      screen.text("c")
+--    end
+    screen.move(loop[i].ui_x+14,loop[i].ui_y+10)
     screen.text("g"..params:get(i.."group"))
 
     --loop progress circle
