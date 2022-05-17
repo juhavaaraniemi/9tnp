@@ -19,8 +19,10 @@
 --
 -- VARIABLES
 --
+PATH = _path.audio.."9tnp/"
+SESSIONID = string.format("%06.0f",1000000*math.random())
 MAX_LOOP_LENGTH = 70
-CLOCK_INTERVAL = 0.02
+CLOCK_INTERVAL = 0.01
 shifted = false
 loop = {}
 selected_loop = 1
@@ -106,7 +108,7 @@ function init_softcut()
     softcut.rate_slew_time(i,0.1)
     softcut.play(i,1)
     softcut.rec(i,1)
-    softcut.phase_quant(i,0.02)
+    softcut.phase_quant(i,0.01)
   end
 
   softcut.event_phase(update_positions)
@@ -232,12 +234,21 @@ function init_parameters()
       group_play = not group_play
     end
   }
+  
+  params:add_separator("files")
+  params:add {type="binary",id="save",name="save loops to disk",behavior="toggle",
+  action=function()
+    print("loops saved to disk")
+    save_loops_to_disk()
+  end
+  }
 end
 
 --
 -- INIT AT STARTUP
 --
 function init()
+  if not util.file_exists(PATH) then util.make_dir(PATH) end
   norns.enc.sens(1,5)
   norns.enc.sens(3,5)
   init_loop_variables()
@@ -510,6 +521,18 @@ function restore_loop(selected)
   softcut.buffer_copy_mono(loop[selected].buffer,loop[selected].buffer,1+3*MAX_LOOP_LENGTH,loop[selected].loop_start,MAX_LOOP_LENGTH,0.00,0.0,0)
   backup = 0
 end
+
+function save_loops_to_disk()
+  saveid = string.format("%06.0f",1000000*math.random())
+  for i=1,6 do
+    if loop[i].content then
+      print("save loop "..i)
+      saved = "9tnp_sessionid"..SESSIONID.."_saveid"..saveid.."_loop"..i..".wav"
+      softcut.buffer_write_mono(PATH..saved,loop[i].loop_start,loop[i].length,loop[i].buffer)
+    end
+  end
+end
+
 
 --
 -- REDRAW FUNCTIONS
