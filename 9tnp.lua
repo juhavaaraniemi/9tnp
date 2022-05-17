@@ -165,7 +165,7 @@ function init_parameters()
       id=i.."multiple",
       name="loop multiple",
       min=1,
-      max=6,
+      max=8,
       default=1,
       action=function(value)
         print(i.."multiple: "..value)
@@ -496,8 +496,14 @@ function sync_loop_ends_to_master(selected)
   master_length = loop[selected].position - loop[selected].loop_start
   for i=1,6 do
     if params:get(i.."master") == params:get(selected.."master") then
-      loop[i].length = master_length * params:get(i.."multiple")
-      softcut.loop_end(i,loop[i].loop_start+master_length*params:get(i.."multiple"))
+      if (master_length * params:get(i.."multiple")) < MAX_LOOP_LENGTH then
+        loop[i].length = master_length * params:get(i.."multiple")
+        softcut.loop_end(i,loop[i].loop_start+master_length*params:get(i.."multiple"))
+      else
+        loop[i].length = master_length
+        softcut.loop_end(i,loop[i].loop_start+master_length)
+        params:set(i.."multiple",1)
+      end
     end
   end
 end
